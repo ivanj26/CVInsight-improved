@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
+from auth_middleware import APIKeyMiddleware
 from cvinsight import CVInsightClient
 
 # Load API key from .env file if available
@@ -15,6 +16,7 @@ if not api_key:
 
 # Initialize the FastAPI app
 app = FastAPI()
+app.add_middleware(APIKeyMiddleware)
 
 # Initialize client with API key
 client = CVInsightClient(api_key=api_key)
