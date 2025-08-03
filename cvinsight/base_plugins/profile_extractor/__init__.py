@@ -39,9 +39,10 @@ class ProfileExtractorPlugin(ExtractorPlugin):
         return """
 You are an expert resume parser. Your task is to extract the contact information from the resume text provided below. Specifically, extract the following details:
 - Name: Name of the candidate
+- Location: Current location of the candidate, if present
 - Email: The candidate's email address
 - Phone: The candidate's phone number, including country code if present
-- LinkedIn: LinkedIn profile URL if present
+- LinkedIn: LinkedIn profile URL if present. If present and there is no http/https, prepend the https in front of url
 - Current Title: The candidate's current job title if present
 - Summary: A brief summary or objective statement if present.
 

@@ -35,6 +35,7 @@ class ExperienceExtractorPlugin(ExtractorPlugin):
         return """
 You are an expert resume parser. Your task is to extract work experience details from the resume text provided below. For each work experience entry, extract the following details:
 - Company
+- Job Description: Returns in array of string. If the resume provides the work description. Add every point into result in array of string.
 - Start Date: in dd/mm/yyyy format. If the resume does not provide the day or month, default the missing parts to "01". If you encounter Present then use the current date, i.e. {today}.
 - End Date: in dd/mm/yyyy format. If the resume does not provide the day or month, default the missing parts to "01". If you encounter Present then use the current date, i.e. {today}.
 - Location
@@ -107,6 +108,7 @@ Text:
                 exp["company"] = exp.get("company") or ""
                 exp["start_date"] = exp.get("start_date") or ""
                 exp["end_date"] = exp.get("end_date") or ""
+                exp["description"] = exp.get("description") or ""
                 exp["location"] = exp.get("location")  # Can be None
                 exp["role"] = exp.get("role") or ""
         
