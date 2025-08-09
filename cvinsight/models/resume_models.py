@@ -7,7 +7,9 @@ class ResumeProfile(BaseModel):
     name: str
     email: Optional[str] = None
     phone: Optional[str] = None
-    location: Optional[str] = None
+    phone_region: Optional[str] = None
+    location_country: Optional[str] = None
+    location_city: Optional[str] = None
     linkedin: Optional[str] = None
     current_title: Optional[str] = None
     summary: Optional[str] = None
@@ -44,6 +46,7 @@ class Experience(BaseModel):
         ...,
         description="A list of job description extracted from the each work experience history."
     )
+    job_type: Optional[str] = None
     start_date: str
     end_date: str
 
@@ -62,8 +65,12 @@ class Resume(BaseModel):
     # Profile information
     name: Optional[str] = None
     contact_number: Optional[str] = None
+    contact_number_region: Optional[str] = None
+    
     email: Optional[str] = None
-    location: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    current_title: Optional[str] = None
     linkedin_url: Optional[str] = None
     
     # Skills
@@ -113,7 +120,10 @@ class Resume(BaseModel):
         return cls(
             name=profile.get('name'),
             contact_number=profile.get('phone'),  # Updated to match ResumeProfile
-            location=profile.get('location'),
+            contact_number_region=profile.get('phone_region'), # Updated extract phone region into separated field
+            country=profile.get('location_country'),
+            city=profile.get('location_city'),
+            current_title=profile.get('current_title'),
             linkedin_url=profile.get('linkedin'),
             email=profile.get('email'),
             skills=skills.get('skills', []),

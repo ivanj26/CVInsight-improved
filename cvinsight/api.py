@@ -124,7 +124,10 @@ def extract_profile(file_path: str) -> Dict[str, Any]:
             profile_data = {
                 'name': result.name,
                 'email': result.email,
-                'phone': result.contact_number
+                'phone': result.contact_number,
+                'phone_region': result.contact_number_region,
+                'location_city': result.location_city,
+                'location_country': result.location_country
             }
             return profile_data
         
@@ -132,7 +135,10 @@ def extract_profile(file_path: str) -> Dict[str, Any]:
         profile = Profile(
             name=result.name if hasattr(result, 'name') else "",
             email=result.email if hasattr(result, 'email') else None,
-            phone=result.contact_number if hasattr(result, 'contact_number') else None
+            phone=result.contact_number if hasattr(result, 'contact_number') else None,
+            phone_region=result.contact_number_region if hasattr(result, 'contact_number_region') else None,
+            location_city=result.location_city if hasattr(result, 'location_city') else None,
+            location_country=result.location_country if hasattr(result, 'location_country') else None
         )
         return profile.model_dump() if hasattr(profile, 'model_dump') else profile.__dict__
     return {}

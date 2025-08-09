@@ -39,7 +39,12 @@ You are an expert resume parser. Your task is to extract education details from 
 - End Date: If mentioned, convert it into the dd/mm/yyyy format. If the day is missing, default it to "01". If the month is missing, default it to "06". If no end date is mentioned, return null. If you encounter Present then use the current date, i.e. {today}.
 - Location
 - Degree
-Only focus on Education section of the below text. If you cannot find anything, return null.
+Only focus on Education section of the below text. Simplify the degree and classify to:
+    - Bachelor degree
+    - Diploma degree
+    - Master degree
+    - Doctoral degree
+If you cannot find anything, return null.
 
 Return your output as a JSON object with the below schema.
 {format_instructions}

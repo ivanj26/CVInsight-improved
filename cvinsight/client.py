@@ -97,7 +97,10 @@ class CVInsightClient:
             profile_data = {
                 'name': result.name,
                 'email': result.email,
-                'phone': result.contact_number
+                'phone': result.contact_number,
+                'phone_region': result.contact_number_region,
+                'location_country': result.location_country,
+                'location_city': result.location_city
             }
             return profile_data
         elif result.get("profile"):

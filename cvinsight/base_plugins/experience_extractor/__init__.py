@@ -36,6 +36,12 @@ class ExperienceExtractorPlugin(ExtractorPlugin):
 You are an expert resume parser. Your task is to extract work experience details from the resume text provided below. For each work experience entry, extract the following details:
 - Company
 - Job Description: Returns in array of string. If the resume provides the work description. Add every point into result in array of string.
+- Job Type: Returns the job type if the resume provide the information, please simplify and classify to:
+    - Full Time Permanent
+    - Full Time Internship
+    - Freelance
+    - Contract
+    - Part time Internship
 - Start Date: in dd/mm/yyyy format. If the resume does not provide the day or month, default the missing parts to "01". If you encounter Present then use the current date, i.e. {today}.
 - End Date: in dd/mm/yyyy format. If the resume does not provide the day or month, default the missing parts to "01". If you encounter Present then use the current date, i.e. {today}.
 - Location

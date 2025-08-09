@@ -39,9 +39,11 @@ class ProfileExtractorPlugin(ExtractorPlugin):
         return """
 You are an expert resume parser. Your task is to extract the contact information from the resume text provided below. Specifically, extract the following details:
 - Name: Name of the candidate
-- Location: Current location of the candidate, if present
+- Location Country: Extract country from the candidate location, if present
+- Location City: Extract city from the candidate location, if present
 - Email: The candidate's email address
-- Phone: The candidate's phone number, including country code if present
+- Phone: The candidate's phone number, excluding country code if present
+- Phone Region: The candidate's phone region if present.
 - LinkedIn: LinkedIn profile URL if present. If present and there is no http/https, prepend the https in front of url
 - Current Title: The candidate's current job title if present
 - Summary: A brief summary or objective statement if present.
@@ -91,7 +93,11 @@ Text:
         token_usage["extractor"] = self.metadata.name
         
         # Process the result
-        fields = ["name", "email", "phone", "linkedin", "current_title", "summary"]
+        print(result)
+        fields = [
+            "name", "email", "phone", "phone_region",
+            "location_country", "location_city", "linkedin", "current_title", "summary",
+        ]
         processed_result = {}
         
         if isinstance(result, dict):
