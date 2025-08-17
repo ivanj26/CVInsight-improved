@@ -2,10 +2,16 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from functools import lru_cache
-from . import config
-from typing import Type, Any, Dict, Tuple, Optional
+from typing import Type, Any, Dict, Tuple, List
 from pydantic import BaseModel
+
+from openai import OpenAI
+from ..models.content_generation_models import AIMessageResponse
+
+from . import config
+from ..core.utils.token_estimator import TiktokenEstimator
+from .utils.token_usage import TokenUsageCallbackHandler
+
 import logging
 import os
 
@@ -22,12 +28,27 @@ class LLMService:
         """
         self.model_name = model_name or config.DEFAULT_LLM_MODEL
         self.api_key = api_key or config.GOOGLE_API_KEY or os.environ.get("GOOGLE_API_KEY")
+        self.deepseek_model_name = config.DEFAULT_GEN_AI_LLM_MODEL
+        self.deepseek_api_key = config.DEEPSEEK_API_KEY or os.environ.get("DEEPSEEK_API_KEY")
         
         if not self.api_key:
             raise ValueError("Google API key is required. Either provide it directly to LLMService or set the GOOGLE_API_KEY environment variable.")
-            
+
+        if not self.deepseek_api_key:
+            raise ValueError("DeepSeek API key is required. Please provide the api key in your environement by set the DEEPSEEK_API_KEY environment variable.")
+
         self.llm = self._get_llm()
-    
+        self.deepseek_llm = self._get_deepseek_llm()
+
+    def _get_deepseek_llm(self):
+        """
+        Get a LLM instance of DeepSeek to generate new contents/recommendations.
+
+        Returns:
+            A OpenAI instance
+        """
+        return OpenAI(base_url=config.DEEPSEEK_API_URL, api_key=self.deepseek_api_key)
+
     def _get_llm(self):
         """
         Get a LLM instance.
@@ -83,68 +104,6 @@ class LLMService:
                 "completion_tokens": 0
             }
             
-            # Create a custom callback handler to track token usage
-            from langchain.callbacks.base import BaseCallbackHandler
-            from langchain.schema import LLMResult
-            
-            class TokenUsageCallbackHandler(BaseCallbackHandler):
-                def __init__(self):
-                    super().__init__()
-                    self.token_usage = {
-                        "total_tokens": 0,
-                        "prompt_tokens": 0,
-                        "completion_tokens": 0,
-                        "source": "not_set"
-                    }
-                    
-                def on_llm_end(self, response: LLMResult, **kwargs) -> None:
-                    """Extract token usage from the LLM response."""
-                    # First check for usage_metadata in the generations (specific to Gemini via langchain_google_genai)
-                    token_found = False
-                    if hasattr(response, "generations") and response.generations:
-                        for gen_list in response.generations:
-                            for gen in gen_list:
-                                # Check for usage_metadata (Gemini's specific location for token info)
-                                if hasattr(gen, "usage_metadata") and gen.usage_metadata:
-                                    usage = gen.usage_metadata
-                                    self.token_usage["total_tokens"] = usage.get("total_tokens", 0)
-                                    self.token_usage["prompt_tokens"] = usage.get("input_tokens", 0)  # Gemini uses input_tokens
-                                    self.token_usage["completion_tokens"] = usage.get("output_tokens", 0)  # Gemini uses output_tokens
-                                    self.token_usage["source"] = "usage_metadata"
-                                    token_found = True
-                                    logging.info(f"Token usage found in usage_metadata: {usage}")
-                                    return
-                                
-                                # Check for usage_metadata in generation's message (alternate location)
-                                if hasattr(gen, "message") and hasattr(gen.message, "usage_metadata") and gen.message.usage_metadata:
-                                    usage = gen.message.usage_metadata
-                                    self.token_usage["total_tokens"] = usage.get("total_tokens", 0)
-                                    self.token_usage["prompt_tokens"] = usage.get("input_tokens", 0)
-                                    self.token_usage["completion_tokens"] = usage.get("output_tokens", 0)
-                                    self.token_usage["source"] = "message_usage_metadata"
-                                    token_found = True
-                                    logging.info(f"Token usage found in message usage_metadata: {usage}")
-                                    return
-                                    
-                                # Fall back to checking in generation_info
-                                if hasattr(gen, "generation_info") and gen.generation_info:
-                                    usage = gen.generation_info.get("token_usage", {})
-                                    if usage:
-                                        self.token_usage["total_tokens"] += usage.get("total_tokens", 0)
-                                        self.token_usage["prompt_tokens"] += usage.get("prompt_tokens", 0) 
-                                        self.token_usage["completion_tokens"] += usage.get("completion_tokens", 0)
-                                        self.token_usage["source"] = "generation_info"
-                                        token_found = True
-                    
-                    # Check for token usage in llm_output (standard location)
-                    if not token_found and hasattr(response, "llm_output") and response.llm_output:
-                        usage = response.llm_output.get("token_usage", {})
-                        if usage:
-                            self.token_usage["total_tokens"] += usage.get("total_tokens", 0)
-                            self.token_usage["prompt_tokens"] += usage.get("prompt_tokens", 0)
-                            self.token_usage["completion_tokens"] += usage.get("completion_tokens", 0)
-                            self.token_usage["source"] = "llm_output"
-            
             # Use the custom callback to track token usage
             callback_handler = TokenUsageCallbackHandler()
             
@@ -189,3 +148,57 @@ class LLMService:
             # Return an empty dictionary and empty token usage
             empty_token_usage = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "source": "error"}
             return {}, empty_token_usage 
+        
+    def generate_content(self, messages: List[AIMessageResponse], max_token: int = 720) -> Tuple[Any, Dict[str, Any]]:
+        token_usage = {
+            "total_tokens": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "is_estimated": True
+        }
+        
+        try:
+            # @Call tiktoken to estimating the rough token usage
+            estimated_token: int = 0
+            estimator = TiktokenEstimator()
+
+            for _, val in enumerate(messages):
+                estimated_token += estimator.calculate(val.content)
+
+            # Set the default prompt tokens with estimated one
+            token_usage["prompt_tokens"] = estimated_token
+            token_usage["total_tokens"] = estimated_token
+
+            # Call the LLM model to get the response
+            llm_model = self.deepseek_llm
+            response = llm_model.chat.completions.create(
+                model=self.deepseek_model_name,
+                messages=[msg.model_dump() for msg in messages],
+                stream=False,
+                max_tokens=max_token,
+                temperature=0.3
+            )
+
+            # Check the response from LLM
+            if not hasattr(response, "choices"):
+                raise KeyError("error: missing generative response from AI LLM")
+            
+            if len(response.choices) == 0:
+                raise ValueError("error: no answer from AI LLM")
+
+            # Get the token usage and override the estimated calculation
+            if hasattr(response, "usage") and response.usage is not None:
+                total_tokens = response.usage.total_tokens
+                if total_tokens > 0:
+                    token_usage["prompt_tokens"] = response.usage.prompt_tokens
+                    token_usage["completion_tokens"] = response.usage.completion_tokens
+                    token_usage["total_tokens"] = total_tokens
+                    token_usage["is_estimated"] = False
+            
+            return response, token_usage
+        except Exception as e:
+            print(f"Error generate new content with LLM: {e}")
+            
+            # Return an empty dictionary and empty token usage
+            token_usage = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "source": "error"}
+            return {}, token_usage

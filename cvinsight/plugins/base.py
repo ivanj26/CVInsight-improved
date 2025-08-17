@@ -3,6 +3,8 @@ from enum import Enum, auto
 from typing import Dict, Any, Type, List, Tuple, Optional
 from pydantic import BaseModel
 
+from ..models.content_generation_models import AIMessageResponse
+
 class PluginCategory(Enum):
     """Categories of plugins."""
     BASE = auto()      # Core functionality plugins
@@ -32,6 +34,32 @@ class BasePlugin(ABC):
     def initialize(self) -> None:
         """Initialize the plugin."""
         pass
+
+class RecommendatorPlugin(BasePlugin):
+    """Base class for recommendator plugins."""
+
+    @abstractmethod
+    def get_prompt_template(self) -> str:
+        """Get the prompt template for the extractor."""
+        pass
+
+    @abstractmethod
+    def prepare_input_data(self, data: Dict[str, Any]) -> List[AIMessageResponse]: 
+        """ Prepare the input data for the LLM """
+        pass
+
+    @abstractmethod
+    def generate(self, data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Generate new content from Generative LLM AI.
+        
+        Args:
+            text: The text to extract information from.
+            
+        Returns:
+            A tuple of (output_data, token_usage)
+        """
+        pass    
 
 class ExtractorPlugin(BasePlugin):
     """Base class for extractor plugins."""

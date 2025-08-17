@@ -93,7 +93,6 @@ Text:
         token_usage["extractor"] = self.metadata.name
         
         # Process the result
-        print(result)
         fields = [
             "name", "email", "phone", "phone_region",
             "location_country", "location_city", "linkedin", "current_title", "summary",

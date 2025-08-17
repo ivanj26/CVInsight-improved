@@ -1,0 +1,80 @@
+from ...core import LLMService
+from ...core.utils import extract_json
+from string import Template
+from typing import Dict, Any, List, Tuple
+
+from ...plugins.base import RecommendatorPlugin, PluginMetadata, PluginCategory
+from ...models.content_generation_models import AIMessageResponse
+
+import logging
+
+class WorkExperienceRecommendator(RecommendatorPlugin):
+    """ Recommendator plugin for work experience description. """
+
+    def __init__(self, llm_service: LLMService = None):
+        """
+        Initialize the plugin with the LLM service.
+
+        Args:
+            llm_service: LLM service for recommend and generate new content.
+        """
+        self.llm_service = llm_service
+
+    def initialize(self) -> None:
+        """Initialize the plugin."""
+        logging.info(f"Initializing {self.metadata.name}")
+
+    @property
+    def metadata(self) -> PluginMetadata:
+        return PluginMetadata(
+            name="work_experience_recommendator",
+            version="1.0.0",
+            description="Generate recommendation about work experience description from context information",
+            category=PluginCategory.BASE,
+        )
+
+    def get_prompt_template(self) -> str:
+        """ Get the prompt template for the recommendator """
+        return """
+Here are some context for you, please note that the context below might be empty:
+- My Current Role: $current_role
+- My Current Job Type: $current_job_type
+- My Current Job Description/Responsibilities: $description
+
+Give me 10-15 examples to showcase my job description, make sure it has quantifiable metric (e.g. Developed data migration tools for memory cache by potentially reduce the human errors at 80%, and ~1 hour faster than manual process).
+You can also mix your answers by rephrasing my current job desc, if exists. Please make it concise by at max 2 paragraphs for each recommendation and
+returns in JSON format with this structure: {\"recommendations\": [\"item1\", \"item2\"]}.
+"""
+
+    def prepare_input_data(self, data: Dict[str, Any]) -> List[AIMessageResponse]: 
+        """ Prepare the input data for the LLM """
+        return [
+            AIMessageResponse(role="system", content="You are a CV/resume assistant. **Always returns in JSON format**"),
+            AIMessageResponse(
+                role="user",
+                content=Template(self.get_prompt_template()).safe_substitute(data),
+            )
+        ]
+    
+    def generate(self, data: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """
+        Generate new content from Generative LLM AI.
+        
+        Args:
+            text: The text to extract information from.
+            
+        Returns:
+            A tuple of (extracted_data, token_usage)
+        """
+        input_data = self.prepare_input_data(data)
+
+        # Call the LLM service
+        result, token_usage = self.llm_service.generate_content(input_data, max_token=800)
+        
+        # Add extractor name to token usage
+        token_usage["extractor"] = self.metadata.name
+
+        if not result:
+            return {}, token_usage
+
+        return extract_json(result.choices[0].message.content), token_usage

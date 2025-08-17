@@ -12,6 +12,11 @@ from .resume_models import (
     Skills
 )
 
+from .content_generation_models import (
+    ContentGenerationResponse,
+    AIMessageResponse
+)
+
 # Alias for backwards compatibility (old code that imports ProfileInfo from models)
 ProfileInfo = ResumeProfile
 

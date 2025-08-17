@@ -37,14 +37,14 @@ def calculate_experience(oldest_date_str, newest_date_str):
         A string representing the total experience in "X Years Y Months" format.
     """
     if not oldest_date_str or not newest_date_str:
-        return "0 Years 0 Months"
+        return "0Y 0M"
     
     try:
         oldest_date = datetime.strptime(oldest_date_str, config.DATE_FORMAT)
         newest_date = datetime.strptime(newest_date_str, config.DATE_FORMAT)
     except ValueError:
         # If the date format is invalid, return default experience.
-        return "0 Years 0 Months"
+        return "0Y 0M"
     
     # Calculate total months of difference.
     total_months = (newest_date.year - oldest_date.year) * 12 + (newest_date.month - oldest_date.month)
@@ -56,4 +56,4 @@ def calculate_experience(oldest_date_str, newest_date_str):
     years = total_months // 12
     months = total_months % 12
     
-    return f"{years} Years {months} Months" 
+    return f"{years}Y {months}M" 

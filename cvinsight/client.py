@@ -207,6 +207,102 @@ class CVInsightClient:
         
         return None
     
+    def generate_work_profile_recom(self, data: Dict[str, Any], log_token_usage: bool = True) -> List[str]:
+        """
+            Generate AI recommendation for user to fill their professional work profile summary.
+
+        Args:
+            data: dictionary of <str, any>
+        Returns:
+            List of recommendation from AI represented in array of string.
+        """
+        from .base_plugins.work_profile_recommendator import WorkProfileRecommendator
+        
+        recommendator = WorkProfileRecommendator(self._llm_service)
+        result, token_usage = recommendator.generate(data)
+
+        if log_token_usage and token_usage:
+            import json
+            import os
+            from datetime import datetime
+
+            logs_dir = os.path.join(os.getcwd(), 'logs')
+            os.makedirs(logs_dir, exist_ok=True)
+
+            # Create a log filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file_path = os.path.join(logs_dir, f"{recommendator.metadata.name}_token_usage_{timestamp}.json")
+            
+            # Save token usage into a separate JSON file
+            with open(log_file_path, 'w') as f:
+                json.dump({"token_usage": token_usage}, f, indent=2)
+
+        return result['recommendations']
+    
+    def generate_work_exp_recom(self, data: Dict[str, Any], log_token_usage: bool = True) -> List[str]:
+        """
+            Generate AI recommendation for user to fill their professional work experience.
+
+        Args:
+            data: dictionary of <str, any>
+        Returns:
+            List of recommendation from AI represented in array of string.
+        """
+        from .base_plugins.work_exp_recommendator import WorkExperienceRecommendator
+        
+        recommendator = WorkExperienceRecommendator(self._llm_service)
+        result, token_usage = recommendator.generate(data)
+
+        if log_token_usage and token_usage:
+            import json
+            import os
+            from datetime import datetime
+
+            logs_dir = os.path.join(os.getcwd(), 'logs')
+            os.makedirs(logs_dir, exist_ok=True)
+
+            # Create a log filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file_path = os.path.join(logs_dir, f"{recommendator.metadata.name}_token_usage_{timestamp}.json")
+            
+            # Save token usage into a separate JSON file
+            with open(log_file_path, 'w') as f:
+                json.dump({"token_usage": token_usage}, f, indent=2)
+
+        return result['recommendations']
+    
+    def generate_edu_recom(self, data: Dict[str, Any], log_token_usage: bool = True) -> List[str]:
+        """
+            Generate AI recommendation for user to fill their education description.
+
+        Args:
+            data: dictionary of <str, any>
+        Returns:
+            List of recommendation from AI represented in array of string.
+        """
+        from .base_plugins.education_recommendator import EducationRecommendator
+        
+        recommendator = EducationRecommendator(self._llm_service)
+        result, token_usage = recommendator.generate(data)
+
+        if log_token_usage and token_usage:
+            import json
+            import os
+            from datetime import datetime
+
+            logs_dir = os.path.join(os.getcwd(), 'logs')
+            os.makedirs(logs_dir, exist_ok=True)
+
+            # Create a log filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file_path = os.path.join(logs_dir, f"{recommendator.metadata.name}_token_usage_{timestamp}.json")
+            
+            # Save token usage into a separate JSON file
+            with open(log_file_path, 'w') as f:
+                json.dump({"token_usage": token_usage}, f, indent=2)
+
+        return result['recommendations']
+
     def analyze_resume(self, resume_path: Union[str, pathlib.Path], 
                       plugins: Optional[List[str]] = None,
                       log_token_usage: bool = True) -> Dict[str, Any]:
