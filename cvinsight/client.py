@@ -302,6 +302,38 @@ class CVInsightClient:
                 json.dump({"token_usage": token_usage}, f, indent=2)
 
         return result['recommendations']
+    
+    def generate_skill_recom(self, data: Dict[str, Any], log_token_usage: bool = True) -> Dict[str, Any]:
+        """
+            Generate AI recommendation for user to fill their skills section.
+
+        Args:
+            data: dictionary of <str, any>
+        Returns:
+            List of recommendation from AI represented in dictionary.
+        """
+        from .base_plugins.skills_recommendator import SkillsRecommendator
+        
+        recommendator = SkillsRecommendator(self._llm_service)
+        result, token_usage = recommendator.generate(data)
+
+        if log_token_usage and token_usage:
+            import json
+            import os
+            from datetime import datetime
+
+            logs_dir = os.path.join(os.getcwd(), 'logs')
+            os.makedirs(logs_dir, exist_ok=True)
+
+            # Create a log filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file_path = os.path.join(logs_dir, f"{recommendator.metadata.name}_token_usage_{timestamp}.json")
+            
+            # Save token usage into a separate JSON file
+            with open(log_file_path, 'w') as f:
+                json.dump({"token_usage": token_usage}, f, indent=2)
+
+        return result
 
     def analyze_resume(self, resume_path: Union[str, pathlib.Path], 
                       plugins: Optional[List[str]] = None,

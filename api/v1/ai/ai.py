@@ -1,7 +1,7 @@
 import os
 
-from models.requests import work_profile as WorkProfileModel,work_experience as WorkExperienceModel,education as EducationModel
-from models.responses import collection_generative as CollectionGenerative
+from models.requests import work_profile as WorkProfileModel,work_experience as WorkExperienceModel,education as EducationModel, skills as SkillModel
+from models.responses import collection_generative as CollectionGenerative, dictionary_generative as DictionaryGenerative
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
@@ -64,6 +64,18 @@ def generate_content(payload: EducationModel.EducationRequest):
         result = client.generate_edu_recom(payload.model_dump(), log_token_usage=True)
         response = CollectionGenerative.CollectionGenerativeResponse(
             data=CollectionGenerative.CollectionGenerative(recommendations=result)
+        )
+
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/generate/skills", response_model=DictionaryGenerative.DictionaryGenerativeResponse)
+def generate_content(payload: SkillModel.SkillRequest):
+    try:
+        result = client.generate_skill_recom(payload.model_dump(), log_token_usage=True)
+        response = DictionaryGenerative.DictionaryGenerativeResponse(
+            data=result
         )
 
         return response

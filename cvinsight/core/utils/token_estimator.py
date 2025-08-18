@@ -15,7 +15,7 @@ class TiktokenEstimator(ITokenEstimator):
     def __init__(self):
         super().__init__()
 
-    def calculate(self, text: str, model_name = "deepseek-chat"):
+    def calculate(self, text: str, model_name = "deepseek-chat") -> int:
         """Estimate token count using tiktoken."""
         try:
             encoding = tiktoken.encoding_for_model(model_name)
