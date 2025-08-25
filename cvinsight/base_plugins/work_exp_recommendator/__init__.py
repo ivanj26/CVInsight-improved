@@ -41,7 +41,7 @@ Here are some context for you, please note that the context below might be empty
 - My Current Job Type: $current_job_type
 - My Current Job Description/Responsibilities: $description
 
-Give me 10-15 examples to showcase my job description, make sure it has quantifiable metric. Do not forget replace the quantifiable metric with [Insert the number], so user can change its own metric.
+Give me 8 examples to showcase my job description, make sure it has quantifiable metric. Do not forget replace the quantifiable metric with [Insert the number], so user can change its own metric.
 You can also mix your answers by rephrasing my current job desc, if exists. Please make it concise by at max 2 paragraphs for each recommendation and
 returns in JSON format with this structure: {\"recommendations\": [\"item1\", \"item2\"]}.
 """

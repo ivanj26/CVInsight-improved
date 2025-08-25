@@ -39,7 +39,7 @@ class EducationRecommendator(RecommendatorPlugin):
 Here are some context for you, please note that the context below might be empty:
 - My Field of Study: $current_major
 
-Give me 10 examples to showcase my education, GPA, certification, achievement, competitions, or awards.
+Give me 8 examples to showcase my education, GPA, certification, achievement, competitions, or awards.
 Please make it concise by at max 2 paragraphs for each recommendation and returns in JSON format with this structure: {\"recommendations\": [\"item1\", \"item2\"]}.
 """
 

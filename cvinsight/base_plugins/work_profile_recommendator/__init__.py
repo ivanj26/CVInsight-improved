@@ -36,8 +36,12 @@ class WorkProfileRecommendator(RecommendatorPlugin):
     def get_prompt_template(self) -> str:
         """ Get the prompt template for the recommendator """
         return """
-My target role is $target_role. My name is $name and my current work is $role at $my_company.
-Give me 10 examples to showcase my own professional profile, please make it concise by at max 2 paragraphs for each recommendation
+My target role: $target_role.
+My name: $name
+My current work is $role at $my_company.
+Description (if exists): $description
+
+Give me at least 8 examples to showcase my own professional profile or you can rephrase description if exists, please make it concise by at max 2 paragraphs for each recommendation
 and returns in JSON format with this structure: {\"recommendations\": [\"item1\", \"item2\"]}.
 """
 
