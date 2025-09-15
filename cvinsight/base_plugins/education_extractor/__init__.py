@@ -41,7 +41,7 @@ You are an expert resume parser. Your task is to extract education details from 
 - Degree
 Only focus on Education section of the below text. Simplify the degree and classify to:
     - Bachelor degree
-    - Diploma degree
+    - Associate degree
     - Master degree
     - Doctoral degree
 If you cannot find anything, return null.
