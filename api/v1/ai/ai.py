@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, date
 
 from models.requests import work_profile as WorkProfileModel,work_experience as WorkExperienceModel,education as EducationModel, skills as SkillModel
 from models.responses import collection_generative as CollectionGenerative, dictionary_generative as DictionaryGenerative
@@ -26,11 +27,44 @@ async def parse_resume(file: UploadFile = File(...)):
 
         # Extract all information (token usage logged separately to logs/ directory)
         result = client.extract_all(temp_path, log_token_usage=True)
+
+        data = {
+            "target_role": result.get("current_title"),
+            "name": result.get("name"),
+            "my_company": "",
+            "description": "",
+        }
+        work_exp = result.get("work_experiences", []) or []
+        if len(work_exp) > 0:
+            def parse_ddmmyyyy(s: str) -> date:
+                return datetime.strptime(s, "%d/%m/%Y").date()
+
+            def key_fn(x: dict[str, any]):
+                try:
+                    return parse_ddmmyyyy(x.get("start_date", ""))
+                except Exception:
+                    return date.min  # push bad/missing dates to the beginning
+
+            latest_work_exp = max(work_exp, key=key_fn)
+            if latest_work_exp:
+                data["my_company"] = latest_work_exp.get("company")
+                data["description"] = "\nMy experience: " + ", ".join(latest_work_exp.get("description"))
+
+        # Generate personal summary from given CV/Resume
+        summary_result = client.generate_work_profile_recom(
+            data,
+            log_token_usage=True,
+            one_recommendation_only=True
+        )
+
+        resp = {"data": result}
+        if len(summary_result) > 0:
+            resp["personalized_summary"] = summary_result[0]
         
         # Remove the temporary file after extraction finished
         os.remove(temp_path)
 
-        return JSONResponse(content = {"data": result})
+        return JSONResponse(content = resp)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     

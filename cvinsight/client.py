@@ -207,7 +207,7 @@ class CVInsightClient:
         
         return None
     
-    def generate_work_profile_recom(self, data: Dict[str, Any], log_token_usage: bool = True) -> List[str]:
+    def generate_work_profile_recom(self, data: Dict[str, Any], log_token_usage: bool = True, one_recommendation_only: bool = False) -> List[str]:
         """
             Generate AI recommendation for user to fill their professional work profile summary.
 
@@ -218,7 +218,7 @@ class CVInsightClient:
         """
         from .base_plugins.work_profile_recommendator import WorkProfileRecommendator
         
-        recommendator = WorkProfileRecommendator(self._llm_service)
+        recommendator = WorkProfileRecommendator(self._llm_service, one_recommendation_only)
         result, token_usage = recommendator.generate(data)
 
         if log_token_usage and token_usage:

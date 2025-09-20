@@ -11,7 +11,7 @@ import logging
 class WorkProfileRecommendator(RecommendatorPlugin):
     """ Recommendator plugin for work profile summary information. """
 
-    def __init__(self, llm_service: LLMService = None):
+    def __init__(self, llm_service: LLMService = None, one_recommendation_only: bool = False):
         """
         Initialize the plugin with the LLM service.
 
@@ -19,6 +19,7 @@ class WorkProfileRecommendator(RecommendatorPlugin):
             llm_service: LLM service for recommend and generate new content.
         """
         self.llm_service = llm_service
+        self.one_recommendation_only = one_recommendation_only
 
     def initialize(self) -> None:
         """Initialize the plugin."""
@@ -41,12 +42,17 @@ My name: $name
 My current work is $role at $my_company.
 Description (if exists): $description
 
-Give me at least 8 examples to showcase my own professional profile or you can rephrase description if exists, please make it concise by at max 2 paragraphs for each recommendation
+Give me at least $total_recommendation examples to showcase my own professional profile or you can rephrase description if exists, please make it concise by at max 2 paragraphs for each recommendation
 and returns in JSON format with this structure: {\"recommendations\": [\"item1\", \"item2\"]}.
 """
 
     def prepare_input_data(self, data: Dict[str, Any]) -> List[AIMessageResponse]: 
         """ Prepare the input data for the LLM """
+        if self.one_recommendation_only:
+            data["total_recommendation"] = 1
+        else:
+            data["total_recommendation"] = 8
+
         return [
             AIMessageResponse(role="system", content="You are a CV/resume assistant. **Always returns in JSON format**"),
             AIMessageResponse(
