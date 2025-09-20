@@ -41,6 +41,8 @@ You are an expert resume parser. Your task is to extract work experience details
     - Full Time Internship
     - Freelance
     - Contract
+    - Self Project
+    - Volunteer
     - Part time Internship
 - Start Date: in dd/mm/yyyy format. If the resume does not provide the day or month, default the missing parts to "01". If you encounter Present then use the current date, i.e. {today}.
 - End Date: in dd/mm/yyyy format. If the resume does not provide the day or month, default the missing parts to "01". If you encounter Present then use the current date, i.e. {today}.
