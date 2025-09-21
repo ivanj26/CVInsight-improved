@@ -37,7 +37,7 @@ class SkillsExtractorPlugin(ExtractorPlugin):
     def get_prompt_template(self) -> str:
         """Get the prompt template for the extractor."""
         return """
-You are an assistant that extracts a list of skills mentioned in the text below. Only focus on Skills section of the below text.
+You are an assistant that extracts a list of skills mentioned in the text below. Only focus on Skills section of the below text and limit to up to 5 skills only.
 Return your output as a JSON object with the below schema.
 {format_instructions}
 
