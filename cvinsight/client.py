@@ -334,6 +334,82 @@ class CVInsightClient:
                 json.dump({"token_usage": token_usage}, f, indent=2)
 
         return result
+    
+    def generate_work_profile_recom_stream(self, data: Dict[str, Any], log_token_usage: bool = True, one_recommendation_only: bool = False):
+        from .base_plugins.work_profile_recommendator import WorkProfileRecommendator
+        import json, os
+        from datetime import datetime
+
+        plugin = WorkProfileRecommendator(self._llm_service, one_recommendation_only)
+        token_usage = {"extractor": plugin.metadata.name}
+
+        yield from plugin.generate_stream(data, token_usage_out=token_usage)
+
+        if log_token_usage and token_usage:
+            logs_dir = os.path.join(os.getcwd(), "logs")
+            os.makedirs(logs_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file = os.path.join(logs_dir, f"{plugin.metadata.name}_token_usage_{timestamp}.json")
+            with open(log_file, "w") as f:
+                json.dump({"token_usage": token_usage}, f, indent=2)
+
+
+    def generate_work_exp_recom_stream(self, data: Dict[str, Any], log_token_usage: bool = True):
+        from .base_plugins.work_exp_recommendator import WorkExperienceRecommendator
+        import json, os
+        from datetime import datetime
+
+        plugin = WorkExperienceRecommendator(self._llm_service)
+        token_usage = {"extractor": plugin.metadata.name}
+
+        yield from plugin.generate_stream(data, token_usage_out=token_usage)
+
+        if log_token_usage and token_usage:
+            logs_dir = os.path.join(os.getcwd(), "logs")
+            os.makedirs(logs_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file = os.path.join(logs_dir, f"{plugin.metadata.name}_token_usage_{timestamp}.json")
+            with open(log_file, "w") as f:
+                json.dump({"token_usage": token_usage}, f, indent=2)
+
+
+    def generate_edu_recom_stream(self, data: Dict[str, Any], log_token_usage: bool = True):
+        from .base_plugins.education_recommendator import EducationRecommendator
+        import json, os
+        from datetime import datetime
+
+        plugin = EducationRecommendator(self._llm_service)
+        token_usage = {"extractor": plugin.metadata.name}
+
+        yield from plugin.generate_stream(data, token_usage_out=token_usage)
+
+        if log_token_usage and token_usage:
+            logs_dir = os.path.join(os.getcwd(), "logs")
+            os.makedirs(logs_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file = os.path.join(logs_dir, f"{plugin.metadata.name}_token_usage_{timestamp}.json")
+            with open(log_file, "w") as f:
+                json.dump({"token_usage": token_usage}, f, indent=2)
+
+
+    def generate_skill_recom_stream(self, data: Dict[str, Any], log_token_usage: bool = True):
+        from .base_plugins.skills_recommendator import SkillsRecommendator
+        import json, os
+        from datetime import datetime
+
+        plugin = SkillsRecommendator(self._llm_service)
+        token_usage = {"extractor": plugin.metadata.name}
+
+        yield from plugin.generate_stream(data, token_usage_out=token_usage)
+
+        if log_token_usage and token_usage:
+            logs_dir = os.path.join(os.getcwd(), "logs")
+            os.makedirs(logs_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_file = os.path.join(logs_dir, f"{plugin.metadata.name}_token_usage_{timestamp}.json")
+            with open(log_file, "w") as f:
+                json.dump({"token_usage": token_usage}, f, indent=2)
+
 
     def analyze_resume(self, resume_path: Union[str, pathlib.Path], 
                       plugins: Optional[List[str]] = None,

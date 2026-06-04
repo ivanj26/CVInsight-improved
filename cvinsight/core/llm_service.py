@@ -202,3 +202,54 @@ class LLMService:
             # Return an empty dictionary and empty token usage
             token_usage = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "source": "error"}
             return {}, token_usage
+        
+    def generate_content_stream(
+        self,
+        messages: List[AIMessageResponse],
+        max_token: int = 720,
+        token_usage_out: Dict[str, Any] = None,
+    ):
+        """Generate content from DeepSeek with streaming. Yields text chunks."""
+        estimated_token = 0
+        estimator = TiktokenEstimator()
+        for val in messages:
+            estimated_token += estimator.calculate(val.content)
+
+        if token_usage_out is not None:
+            token_usage_out.update({
+                "total_tokens": estimated_token,
+                "prompt_tokens": estimated_token,
+                "completion_tokens": 0,
+                "is_estimated": True,
+            })
+
+        try:
+            stream = self.deepseek_llm.chat.completions.create(
+                model=self.deepseek_model_name,
+                messages=[msg.model_dump() for msg in messages],
+                stream=True,
+                stream_options={"include_usage": True},  # DeepSeek/OpenAI: sends usage in last chunk
+                max_tokens=max_token,
+                temperature=0.3,
+            )
+
+            for chunk in stream:
+                # Last chunk has usage populated (from stream_options)
+                if token_usage_out is not None and getattr(chunk, "usage", None) is not None:
+                    usage = chunk.usage
+                    if usage.total_tokens > 0:
+                        token_usage_out.update({
+                            "prompt_tokens": usage.prompt_tokens,
+                            "completion_tokens": usage.completion_tokens,
+                            "total_tokens": usage.total_tokens,
+                            "is_estimated": False,
+                        })
+
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+
+        except Exception as e:
+            print(f"Error streaming content with LLM: {e}")
+            if token_usage_out is not None:
+                token_usage_out.update({"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "source": "error"})
+

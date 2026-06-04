@@ -61,6 +61,11 @@ class RecommendatorPlugin(BasePlugin):
         """
         pass    
 
+    def generate_stream(self, data: Dict[str, Any], token_usage_out: Dict[str, Any] = None):
+        """Stream raw tokens from the LLM. Yields text chunks."""
+        messages = self.prepare_input_data(data)
+        yield from self.llm_service.generate_content_stream(messages, token_usage_out=token_usage_out)
+
 class ExtractorPlugin(BasePlugin):
     """Base class for extractor plugins."""
     
