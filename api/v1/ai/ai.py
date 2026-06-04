@@ -69,54 +69,6 @@ async def parse_resume(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@router.post("/generate/work-profile", response_model=CollectionGenerative.CollectionGenerativeResponse)
-def generate_content(payload: WorkProfileModel.WorkProfileRequest):
-    try:
-        result = client.generate_work_profile_recom(payload.model_dump(), log_token_usage=True)
-        response = CollectionGenerative.CollectionGenerativeResponse(
-            data=CollectionGenerative.CollectionGenerative(recommendations=result)
-        )
-
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@router.post("/generate/work-experience", response_model=CollectionGenerative.CollectionGenerativeResponse)
-def generate_content(payload: WorkExperienceModel.WorkExperienceRequest):
-    try:
-        result = client.generate_work_exp_recom(payload.model_dump(), log_token_usage=True)
-        response = CollectionGenerative.CollectionGenerativeResponse(
-            data=CollectionGenerative.CollectionGenerative(recommendations=result)
-        )
-
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@router.post("/generate/education", response_model=CollectionGenerative.CollectionGenerativeResponse)
-def generate_content(payload: EducationModel.EducationRequest):
-    try:
-        result = client.generate_edu_recom(payload.model_dump(), log_token_usage=True)
-        response = CollectionGenerative.CollectionGenerativeResponse(
-            data=CollectionGenerative.CollectionGenerative(recommendations=result)
-        )
-
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@router.post("/generate/skills", response_model=DictionaryGenerative.DictionaryGenerativeResponse)
-def generate_content(payload: SkillModel.SkillRequest):
-    try:
-        result = client.generate_skill_recom(payload.model_dump(), log_token_usage=True)
-        response = DictionaryGenerative.DictionaryGenerativeResponse(
-            data=result
-        )
-
-        return response
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
 def _sse_stream(generator):
     """Wrap a text-chunk generator into SSE format."""
     try:
