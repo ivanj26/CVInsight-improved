@@ -47,6 +47,7 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+REDIS_PASSWORD = os.environ.get("REDIS_PASSWORD") or None
 REDIS_INPUT_CHANNEL = os.environ.get("DOCS_CHECKER_INPUT_CHANNEL", "docs_checker:jobs")
 REDIS_OUTPUT_CHANNEL = os.environ.get("DOCS_CHECKER_OUTPUT_CHANNEL", "docs_checker:results")
 MAX_CONCURRENT_JOBS = int(os.environ.get("MAX_CONCURRENT_JOBS", "3"))
@@ -104,7 +105,7 @@ class DocsCheckerWorker:
         logger.info("  Max concurrency: %d", self._semaphore._value)
         logger.info("  DeepSeek base  : %s", DEEPSEEK_BASE_URL)
 
-        redis_client = aioredis.from_url(self._redis_url, decode_responses=False)
+        redis_client = aioredis.from_url(self._redis_url, password=REDIS_PASSWORD, decode_responses=False)
         pubsub = redis_client.pubsub()
         await pubsub.subscribe(self._input_channel)
         logger.info("Subscribed — waiting for messages...")
