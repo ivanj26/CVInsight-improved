@@ -1,0 +1,32 @@
+FROM python:3.11-slim
+
+# Prevent .pyc files; force real-time stdout/stderr for docker logs
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Pre-create the token-usage log dir so the worker never hits a permission error
+RUN mkdir -p logs/docs-checker
+
+# Run as non-root
+RUN useradd -r -u 1001 -s /sbin/nologin worker \
+    && chown -R worker:worker /app
+USER worker
+
+# Verify Redis is still reachable (process alive + connectivity)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD python -c "\
+import os, redis; \
+r = redis.from_url( \
+    os.environ.get('REDIS_URL', 'redis://localhost:6379'), \
+    password=os.environ.get('REDIS_PASSWORD') or None \
+); \
+r.ping()" || exit 1
+
+CMD ["python", "-m", "workers.docs_checker_worker"]

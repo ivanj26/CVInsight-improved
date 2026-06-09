@@ -7,5 +7,20 @@ docker-run:
 docker-update:
 	docker stop docker-cvparser && docker rm docker-cvparser && docker run -d --name docker-cvparser -p 9001:9001 cvparser-service
 
+docker-build-worker:
+	docker build --no-cache -f Dockerfile.worker -t docs-checker-worker .
+
+docker-run-worker:
+	docker run -d \
+		--name docs-checker \
+		--restart on-failure:5 \
+		--network host \
+		--env-file .env \
+		-v $(PWD)/logs:/app/logs \
+		docs-checker-worker
+
+docker-stop-worker:
+	docker stop docs-checker && docker rm docs-checker
+
 run-worker:
 	python -m workers.docs_checker_worker
