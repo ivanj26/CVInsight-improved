@@ -11,10 +11,12 @@ docker-build-worker:
 	docker build --no-cache -f Dockerfile.worker -t docs-checker-worker .
 
 docker-run-worker:
+	mkdir -p logs/docs-checker
 	docker run -d \
 		--name docs-checker \
 		--restart on-failure:5 \
 		--network host \
+		--user $$(id -u):$$(id -g) \
 		--env-file .env \
 		-v $(PWD)/logs:/app/logs \
 		docs-checker-worker
