@@ -172,11 +172,35 @@ class DocsCheckerWorker:
         try:
             files = await asyncio.to_thread(self._downloader.download, link, tmp_dir)
         except PermissionError as exc:
-            logger.warning("[job=%s] Skipped — link not public: %s", job_id, exc)
+            msg = "[job=%s] Skipped — link not public: %s" % (job_id, exc)
+            logger.warning(msg)
+            await redis_client.publish(self._output_channel, json.dumps({
+                "job_id": job_id,
+                "status": 0,
+                "file_names": [],
+                "error": msg,
+            }))
+            return
+        except Exception as exc:
+            msg = "[job=%s] Download failed: %s" % (job_id, exc)
+            logger.exception(msg)
+            await redis_client.publish(self._output_channel, json.dumps({
+                "job_id": job_id,
+                "status": 0,
+                "file_names": [],
+                "error": msg,
+            }))
             return
 
         if not files:
-            logger.warning("[job=%s] Skipped — no .pdf or .docx files found at link", job_id)
+            msg = "[job=%s] Skipped — no .pdf or .docx files found at link" % job_id
+            logger.warning(msg)
+            await redis_client.publish(self._output_channel, json.dumps({
+                "job_id": job_id,
+                "status": 0,
+                "file_names": [],
+                "error": msg,
+            }))
             return
 
         logger.info(
