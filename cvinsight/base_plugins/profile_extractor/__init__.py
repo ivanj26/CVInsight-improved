@@ -43,7 +43,7 @@ You are an expert resume parser. Your task is to extract the contact information
 - Location City: Extract city from the candidate location, if present
 - Email: The candidate's email address
 - Phone: The candidate's phone number, excluding country code if present
-- Phone Region: The candidate's phone region if present.
+- Phone Region: The candidate's phone region if present (e.g. +62, +1).
 - LinkedIn: LinkedIn profile URL if present. If present and there is no http/https, prepend the https in front of url
 - Current Title: The candidate's current job title if present
 - Summary: A brief summary or objective statement if present.

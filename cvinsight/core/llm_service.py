@@ -170,8 +170,7 @@ class LLMService:
             token_usage["total_tokens"] = estimated_token
 
             # Call the LLM model to get the response
-            llm_model = self.deepseek_llm
-            response = llm_model.chat.completions.create(
+            response = self.deepseek_llm.chat.completions.create(
                 model=self.deepseek_model_name,
                 messages=[msg.model_dump() for msg in messages],
                 stream=False,
