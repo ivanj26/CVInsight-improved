@@ -53,4 +53,9 @@ ENABLE_CUSTOM_PLUGINS = True
 
 # LLM configuration for plugins
 LLM_MODEL = os.environ.get("LLM_MODEL", DEFAULT_LLM_MODEL)
-LLM_TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", str(constants.DEFAULT_MODEL_TEMPERATURE))) 
+LLM_TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", str(constants.DEFAULT_MODEL_TEMPERATURE)))
+
+# LLM request limits
+# Worst-case wall clock per extraction is roughly LLM_REQUEST_TIMEOUT * (LLM_MAX_RETRIES + 1)
+LLM_REQUEST_TIMEOUT = float(os.environ.get("LLM_REQUEST_TIMEOUT", "60"))  # Seconds before an LLM request is aborted
+LLM_MAX_RETRIES = int(os.environ.get("LLM_MAX_RETRIES", "2"))  # Retries attempted by the OpenAI client on failure

@@ -5,7 +5,7 @@ from langchain_core.output_parsers import JsonOutputParser
 from typing import Type, Any, Dict, Tuple, List
 from pydantic import BaseModel
 
-from openai import OpenAI
+from openai import OpenAI, APITimeoutError
 from ..models.content_generation_models import AIMessageResponse
 
 from . import config
@@ -62,6 +62,8 @@ class LLMService:
             base_url=self.api_url,
             model=self.model_name,
             temperature=config.LLM_TEMPERATURE,
+            timeout=config.LLM_REQUEST_TIMEOUT,
+            max_retries=config.LLM_MAX_RETRIES,
             model_kwargs={"response_format": {"type": "json_object"}},
         )
     
@@ -149,11 +151,16 @@ class LLMService:
             # If we got here, something unexpected happened. Return an empty dict.
             return {}, token_usage
             
+        except APITimeoutError as e:
+            print(f"LLM request timed out after {config.LLM_REQUEST_TIMEOUT}s: {e}")
+            # Tag the usage as a timeout so callers can tell it apart from a genuinely empty extraction
+            timeout_token_usage = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "source": "timeout"}
+            return {}, timeout_token_usage
         except Exception as e:
             print(f"Error extracting information with LLM: {e}")
             # Return an empty dictionary and empty token usage
             empty_token_usage = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "source": "error"}
-            return {}, empty_token_usage 
+            return {}, empty_token_usage
         
     def generate_content(self, messages: List[AIMessageResponse], max_token: int = 720) -> Tuple[Any, Dict[str, Any]]:
         token_usage = {
