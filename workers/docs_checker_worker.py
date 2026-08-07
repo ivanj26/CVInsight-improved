@@ -2,7 +2,7 @@
 Docs Checker Worker
 
 Subscribes to a Redis PubSub channel, downloads documents from public Google Drive
-links (.pdf / .docx only), extracts text, and submits each document to the DeepSeek
+links (.pdf / .docx only), extracts text, and submits each document to the TokenRouter
 AI checker. The raw AI response is published back on a separate Redis channel.
 
 Message format consumed (JSON):
@@ -52,9 +52,9 @@ REDIS_INPUT_CHANNEL = os.environ.get("DOCS_CHECKER_INPUT_CHANNEL", "docs_checker
 REDIS_OUTPUT_CHANNEL = os.environ.get("DOCS_CHECKER_OUTPUT_CHANNEL", "docs_checker:results")
 MAX_CONCURRENT_JOBS = int(os.environ.get("MAX_CONCURRENT_JOBS", "3"))
 
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
-_raw_base = os.environ.get("DEEPSEEK_API_URL", "https://api.deepseek.com").rstrip("/")
-DEEPSEEK_BASE_URL = _raw_base if _raw_base.endswith("/v1") else f"{_raw_base}/v1"
+TOKENROUTER_API_KEY = os.environ.get("TOKENROUTER_API_KEY", "")
+_raw_base = os.environ.get("TOKENROUTER_API_URL", "").rstrip("/")
+TOKENROUTER_BASE_URL = _raw_base if _raw_base.endswith("/v1") else f"{_raw_base}/v1"
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -92,7 +92,7 @@ class DocsCheckerWorker:
 
         self._downloader = GDriveDownloader()
         self._extractor = TextExtractor()
-        self._ai_checker = AIChecker(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
+        self._ai_checker = AIChecker(api_key=TOKENROUTER_API_KEY, base_url=TOKENROUTER_BASE_URL)
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -103,7 +103,7 @@ class DocsCheckerWorker:
         logger.info("  Input channel  : %s", self._input_channel)
         logger.info("  Output channel : %s", self._output_channel)
         logger.info("  Max concurrency: %d", self._semaphore._value)
-        logger.info("  DeepSeek base  : %s", DEEPSEEK_BASE_URL)
+        logger.info("  TokenRouter base  : %s", TOKENROUTER_BASE_URL)
 
         redis_client = aioredis.from_url(self._redis_url, password=REDIS_PASSWORD, decode_responses=False)
         pubsub = redis_client.pubsub()
@@ -360,8 +360,8 @@ class DocsCheckerWorker:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    if not DEEPSEEK_API_KEY:
-        logger.error("DEEPSEEK_API_KEY is not set — aborting.")
+    if not TOKENROUTER_API_KEY:
+        logger.error("TOKENROUTER_API_KEY is not set — aborting.")
         sys.exit(1)
     asyncio.run(DocsCheckerWorker().run())
 

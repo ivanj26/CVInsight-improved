@@ -1,18 +1,19 @@
 """
-AIChecker — async DeepSeek AI-generated content detector.
+AIChecker — async TokenRouter AI-generated content detector.
 
 Accepts pre-extracted plain text and returns a structured verdict plus the
 full raw API response for auditability.
 """
 
 import json
+import os
 import re
 
 from openai import AsyncOpenAI
 
 
 class AIChecker:
-    _MODEL = "deepseek-v4-pro"
+    _MODEL = os.environ.get("DOCS_CHECKER_DEFAULT_LLM_MODEL", "agentrouter/gpt-5.6-sol")
     _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
     _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 
@@ -21,7 +22,7 @@ class AIChecker:
 
     async def check(self, text: str) -> dict:
         """
-        Submit text to DeepSeek and return:
+        Submit text to TokenRouter and return:
             {
               "parsed": {"likelihood_score": int, "reasoning": str, "is_ai_generated": bool},
               "raw":    <full ChatCompletion.model_dump()>
