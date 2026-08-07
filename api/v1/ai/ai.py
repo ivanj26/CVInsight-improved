@@ -9,14 +9,10 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse, StreamingResponse
 from cvinsight import CVInsightClient
 
-api_key = os.environ.get("GOOGLE_API_KEY")
-if not api_key:
-    raise ValueError("Missing GOOGLE_API_KEY in environment")
-
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 # Initialize client with API key
-client = CVInsightClient(api_key=api_key)
+client = CVInsightClient()
 
 @router.post("/parse")
 async def parse_resume(file: UploadFile = File(...)):

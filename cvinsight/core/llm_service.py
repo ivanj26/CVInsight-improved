@@ -1,5 +1,5 @@
 """LLM service for CVInsight."""
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from typing import Type, Any, Dict, Tuple, List
@@ -24,15 +24,16 @@ class LLMService:
         
         Args:
             model_name: The name of the model to use. Defaults to config.DEFAULT_LLM_MODEL.
-            api_key: The API key to use. If None, will use config.GOOGLE_API_KEY
+            api_key: The API key to use. If None, will use config.TOKENROUTER_API_KEY
         """
         self.model_name = model_name or config.DEFAULT_LLM_MODEL
-        self.api_key = api_key or config.GOOGLE_API_KEY or os.environ.get("GOOGLE_API_KEY")
+        self.api_key = api_key or config.TOKENROUTER_API_KEY or os.environ.get("TOKENROUTER_API_KEY")
+        self.api_url = config.TOKENROUTER_API_URL
         self.deepseek_model_name = config.DEFAULT_GEN_AI_LLM_MODEL
         self.deepseek_api_key = config.DEEPSEEK_API_KEY or os.environ.get("DEEPSEEK_API_KEY")
-        
+
         if not self.api_key:
-            raise ValueError("Google API key is required. Either provide it directly to LLMService or set the GOOGLE_API_KEY environment variable.")
+            raise ValueError("TokenRouter API key is required. Either provide it directly to LLMService or set the TOKENROUTER_API_KEY environment variable.")
 
         if not self.deepseek_api_key:
             raise ValueError("DeepSeek API key is required. Please provide the api key in your environement by set the DEEPSEEK_API_KEY environment variable.")
@@ -51,12 +52,18 @@ class LLMService:
 
     def _get_llm(self):
         """
-        Get a LLM instance.
-        
+        Get a LLM instance for extraction, served by an OpenAI-compatible endpoint.
+
         Returns:
-            A ChatGoogleGenerativeAI instance.
+            A ChatOpenAI instance.
         """
-        return ChatGoogleGenerativeAI(api_key=self.api_key, model=self.model_name)
+        return ChatOpenAI(
+            api_key=self.api_key,
+            base_url=self.api_url,
+            model=self.model_name,
+            temperature=config.LLM_TEMPERATURE,
+            model_kwargs={"response_format": {"type": "json_object"}},
+        )
     
     def create_extraction_chain(self, pydantic_model: Type[BaseModel], prompt_template: str, input_variables: list):
         """
@@ -111,7 +118,6 @@ class LLMService:
             chain = self.create_extraction_chain(pydantic_model, prompt_template, input_variables)
             
             # Invoke the chain with our custom callback
-            from langchain.callbacks.manager import CallbackManager
             result = chain.invoke(input_data, config={"callbacks": [callback_handler]})
             
             # Get token usage from callback

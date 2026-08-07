@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "cvinsight"
 version = "0.1.0"
-description = "AI-powered resume parsing and analysis using Google's Gemini models"
+description = "AI-powered resume parsing and analysis using OpenAI-compatible models"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -19,7 +19,7 @@ classifiers = [
 ]
 dependencies = [
     "langchain",
-    "langchain-google-genai",
+    "langchain-openai",
     "pydantic",
     "python-dotenv",
     "click",

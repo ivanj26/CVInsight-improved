@@ -8,15 +8,18 @@ load_dotenv()
 # API Url
 DEEPSEEK_API_URL = os.environ.get("DEEPSEEK_API_URL")
 
+# Base URL of the OpenAI-compatible provider used for extraction
+TOKENROUTER_API_URL = os.environ.get("TOKENROUTER_API_URL", "https://api.tokenrouter.com/v1")
+
 # API keys - get but don't raise error (handled by LLMService)
-GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
+TOKENROUTER_API_KEY = os.environ.get("TOKENROUTER_API_KEY")
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")
 
 # LLM Models
-DEFAULT_LLM_MODEL = os.environ.get("DEFAULT_LLM_MODEL", "gemini-2.0-flash")
+DEFAULT_LLM_MODEL = os.environ.get("DEFAULT_LLM_MODEL", "deepseek-v4-flash")
 
 # LLM Model for Generative text (use for generate new contents)
-DEFAULT_GEN_AI_LLM_MODEL = os.environ.get("DEFAULT_GEN_AI_LLM_MODEL", "deepseek-chat")
+DEFAULT_GEN_AI_LLM_MODEL = os.environ.get("DEFAULT_GEN_AI_LLM_MODEL", "deepseek-v4-flash")
 
 # Date formats
 DATE_FORMAT = constants.DEFAULT_DATE_FORMAT

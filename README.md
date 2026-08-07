@@ -87,9 +87,9 @@ from cvinsight import CVInsightClient
 load_dotenv()
 
 # Get API key from environment or prompt
-api_key = os.environ.get("GOOGLE_API_KEY")
+api_key = os.environ.get("TOKENROUTER_API_KEY")
 if not api_key:
-    api_key = input("Enter your Gemini API key: ")
+    api_key = input("Enter your TokenRouter API key: ")
 
 # Initialize client with API key
 client = CVInsightClient(api_key=api_key)
@@ -119,18 +119,19 @@ You can set the API key in multiple ways:
 2.  **Environment Variable:**
     ```bash
     # In your shell
-    export GOOGLE_API_KEY="YOUR_GEMINI_API_KEY"
+    export TOKENROUTER_API_KEY="YOUR_TOKENROUTER_API_KEY"
     ```
 3.  **`.env` File:** Create a `.env` file in your project directory (Recommended):
     ```
-    GOOGLE_API_KEY=YOUR_GEMINI_API_KEY
+    TOKENROUTER_API_KEY=YOUR_TOKENROUTER_API_KEY
     ```
 
 ### Other Configuration Options
 
 You can configure the following options in the `.env` file (primarily for development and advanced usage):
 
-- `DEFAULT_LLM_MODEL`: Model name to use (default: gemini-2.0-flash)
+- `TOKENROUTER_API_URL`: Base URL of the OpenAI-compatible endpoint (default: https://api.tokenrouter.com/v1)
+- `DEFAULT_LLM_MODEL`: Model name to use (default: deepseek-v4-flash)
 - `RESUME_DIR`: Directory containing resume files (default: ./Resumes)
 - `OUTPUT_DIR`: Directory for processed results (default: ./Results)
 - `LOG_LEVEL`: Logging level (INFO, DEBUG, etc.)

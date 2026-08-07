@@ -15,22 +15,23 @@ from .models.resume_models import (
 
 class CVInsightClient:
     """Client for CVInsight resume analysis.
-    
-    This client provides methods for analyzing resumes using Google's Gemini models.
+
+    This client provides methods for analyzing resumes using OpenAI-compatible models
+    served by TokenRouter.
     """
-    
+
     def __init__(self, api_key: Optional[str] = None, model_name: Optional[str] = None):
         """
         Initialize the CVInsight client.
-        
+
         Args:
-            api_key: Google API key for accessing Gemini models. If None, will look for
-                    GOOGLE_API_KEY environment variable
+            api_key: TokenRouter API key for accessing the models. If None, will look for
+                    TOKENROUTER_API_KEY environment variable
             model_name: The name of the model to use. If None, will use default from config
         """
         # Store API key in environment if provided
         if api_key:
-            os.environ["GOOGLE_API_KEY"] = api_key
+            os.environ["TOKENROUTER_API_KEY"] = api_key
             
         # Initialize services
         self._llm_service = LLMService(model_name=model_name)

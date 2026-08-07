@@ -27,14 +27,14 @@ def configure(api_key: str, model_name: Optional[str] = None):
     Configure the CVInsight API with credentials.
     
     Args:
-        api_key: Google API key for Gemini models
+        api_key: TokenRouter API key for the OpenAI-compatible models
         model_name: Optional model name to use
     """
     global _api_key, _llm_service, _plugin_manager, _processor
-    
+
     # Store api key
     _api_key = api_key
-    os.environ["GOOGLE_API_KEY"] = api_key
+    os.environ["TOKENROUTER_API_KEY"] = api_key
     
     # Reset services to use new configuration
     _llm_service = None

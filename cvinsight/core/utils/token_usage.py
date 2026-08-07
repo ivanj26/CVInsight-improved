@@ -3,8 +3,6 @@ from langchain.schema import LLMResult
 
 import logging
 
-from openai.types.chat.chat_completion import ChatCompletion
-
 # TokenUsageCallbackHandler to calculate the token usage from LLM Response
 class TokenUsageCallbackHandler(BaseCallbackHandler):
     def __init__(self):
@@ -16,27 +14,19 @@ class TokenUsageCallbackHandler(BaseCallbackHandler):
             "source": "not_set"
         }
 
-    def on_llm_end(self, response: ChatCompletion, **kwargs) -> None:
-        """Extract token usage from the DeepSeek LLM response."""
-        if hasattr(response, "usage") and response.usage:
-            token_usage = response.usage
-            total_token = token_usage.total_tokens
-                
-
-        
     def on_llm_end(self, response: LLMResult, **kwargs) -> None:
         """Extract token usage from the LLM response."""
-        # First check for usage_metadata in the generations (specific to Gemini via langchain_google_genai)
+        # First check for usage_metadata in the generations (LangChain's normalized location)
         token_found = False
         if hasattr(response, "generations") and response.generations:
             for gen_list in response.generations:
                 for gen in gen_list:
-                    # Check for usage_metadata (Gemini's specific location for token info)
+                    # Check for usage_metadata (normalized token info across chat providers)
                     if hasattr(gen, "usage_metadata") and gen.usage_metadata:
                         usage = gen.usage_metadata
                         self.token_usage["total_tokens"] = usage.get("total_tokens", 0)
-                        self.token_usage["prompt_tokens"] = usage.get("input_tokens", 0)  # Gemini uses input_tokens
-                        self.token_usage["completion_tokens"] = usage.get("output_tokens", 0)  # Gemini uses output_tokens
+                        self.token_usage["prompt_tokens"] = usage.get("input_tokens", 0)  # normalized name for prompt tokens
+                        self.token_usage["completion_tokens"] = usage.get("output_tokens", 0)  # normalized name for completion tokens
                         self.token_usage["source"] = "usage_metadata"
                         token_found = True
                         logging.info(f"Token usage found in usage_metadata: {usage}")

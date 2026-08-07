@@ -11,9 +11,14 @@ class TestModel(BaseModel):
     skills: List[str]
 
 @pytest.fixture
-def mock_llm():
+def mock_llm(monkeypatch):
     """Mock LLM."""
-    with patch('cvinsight.core.llm_service.ChatGoogleGenerativeAI') as mock:
+    monkeypatch.setenv("TOKENROUTER_API_KEY", "test-tokenrouter-key")
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-deepseek-key")
+    monkeypatch.setattr("cvinsight.core.llm_service.config.TOKENROUTER_API_KEY", "test-tokenrouter-key")
+    monkeypatch.setattr("cvinsight.core.llm_service.config.DEEPSEEK_API_KEY", "test-deepseek-key")
+
+    with patch('cvinsight.core.llm_service.ChatOpenAI') as mock:
         mock_instance = MagicMock()
         mock_generation = MagicMock()
         mock_generation.text = '{"name": "John Doe", "skills": ["Python", "Java"]}'
