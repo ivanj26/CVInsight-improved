@@ -6,6 +6,7 @@ from models.requests import work_profile as WorkProfileModel,work_experience as 
 from models.responses import collection_generative as CollectionGenerative, dictionary_generative as DictionaryGenerative
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse, StreamingResponse
 from cvinsight import CVInsightClient
 
@@ -22,8 +23,10 @@ async def parse_resume(file: UploadFile = File(...)):
         with open(temp_path, "wb") as f:
             f.write(await file.read())
 
-        # Extract all information (token usage logged separately to logs/ directory)
-        result = client.extract_all(temp_path, log_token_usage=True)
+        # Extract all information (token usage logged separately to logs/ directory).
+        # Offloaded to a thread: these calls block on the LLM, and blocking the event
+        # loop stops the uvicorn worker from heartbeating gunicorn, which kills it.
+        result = await run_in_threadpool(client.extract_all, temp_path, log_token_usage=True)
 
         data = {
             "target_role": result.get("current_title"),
@@ -48,7 +51,8 @@ async def parse_resume(file: UploadFile = File(...)):
                 data["description"] = "\nMy experience: " + ", ".join(latest_work_exp.get("description"))
 
         # Generate personal summary from given CV/Resume
-        summary_result = client.generate_work_profile_recom(
+        summary_result = await run_in_threadpool(
+            client.generate_work_profile_recom,
             data,
             log_token_usage=True,
             one_recommendation_only=True

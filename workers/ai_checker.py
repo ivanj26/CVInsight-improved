@@ -12,9 +12,25 @@ import re
 from openai import AsyncOpenAI
 
 
+_VERDICT_SCHEMA = {
+    "name": "ai_check_verdict",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "likelihood_score": {"type": "integer", "minimum": 0, "maximum": 100},
+            "reasoning": {"type": "string"},
+            "is_ai_generated": {"type": "boolean"},
+        },
+        "required": ["likelihood_score", "reasoning", "is_ai_generated"],
+        "additionalProperties": False,
+    },
+}
+
+
 class AIChecker:
     _MODEL = os.environ.get("DOCS_CHECKER_DEFAULT_LLM_MODEL", "agentrouter/gpt-5.6-sol")
-    _JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
+    _FENCE_RE = re.compile(r"```(?:json)?", re.IGNORECASE)
     _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 
     def __init__(self, api_key: str, base_url: str) -> None:
@@ -41,30 +57,35 @@ class AIChecker:
                         f"Please carefully validate this file content [FILE START]\n{text}\n[FILE END].\n"
                         "Give me a likelihood score from 0 to 100 of this file being AI generated and explain your reasoning under 720words in the `reasoning` field.\n"
                         "If the likelihood score is above 65, please set the json property `is_ai_generated` to true, otherwise set it to false:\n\n"
-                        "Response your answer strictly using the following JSON format:\n"
+                        "Reply with ONLY a ```json fenced code block containing exactly this JSON format:\n"
                         '{"likelihood_score": 0, "reasoning": "...", "is_ai_generated": false}'
                     ),
                 },
             ],
             stream=False,
-            max_tokens=2048,
+            max_completion_tokens=4096,
             reasoning_effort="high",
+            response_format={"type": "json_schema", "json_schema": _VERDICT_SCHEMA},
             extra_body={"thinking": {"type": "enabled"}},
         )
 
-        raw_content = response.choices[0].message.content or ""
+        choice = response.choices[0]
+        raw_content = choice.message.content or ""
+        parsed = self._parse_response(raw_content)
+        if choice.finish_reason == "length":
+            parsed.setdefault("truncated", True)
+
         return {
-            "parsed": self._parse_response(raw_content),
+            "parsed": parsed,
             "raw": response.model_dump(),
         }
 
     def _parse_response(self, content: str) -> dict:
         """
         Extract the JSON verdict from the model's response.
-        Handles optional markdown code fences gracefully.
+        Handles markdown code fences and a leading token eaten by the gateway.
         """
-        fence_match = self._JSON_FENCE_RE.search(content)
-        candidate = fence_match.group(1) if fence_match else content
+        candidate = self._strip_fences(content)
 
         obj_match = self._JSON_OBJECT_RE.search(candidate)
         if obj_match:
@@ -73,7 +94,37 @@ class AIChecker:
             except json.JSONDecodeError:
                 pass
 
+        repaired = self._repair_leading_brace(candidate)
+        if repaired is not None:
+            return repaired
+
         return {
             "parse_error": "Could not extract JSON from AI response",
             "raw_content": content,
         }
+
+    def _strip_fences(self, content: str) -> str:
+        """
+        Drop markdown fences. The gateway eats the first token of every reply, so
+        the opening ``` may be missing and leave a bare `json` marker behind.
+        """
+        text = self._FENCE_RE.sub("", content).strip()
+        if text.lower().startswith("json"):
+            text = text[len("json"):].lstrip()
+        return text
+
+    def _repair_leading_brace(self, candidate: str) -> dict | None:
+        """
+        Last resort for when the eaten first token was the opening brace itself
+        (`{` and `{"` are both single tokens). Restore it and see if that parses.
+        """
+        stripped = candidate.strip()
+        if not stripped.endswith("}"):
+            return None
+
+        for prefix in ('{"', "{"):
+            try:
+                return json.loads(prefix + stripped)
+            except json.JSONDecodeError:
+                continue
+        return None
