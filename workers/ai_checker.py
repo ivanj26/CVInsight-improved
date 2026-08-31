@@ -29,7 +29,7 @@ _VERDICT_SCHEMA = {
 
 
 class AIChecker:
-    _MODEL = os.environ.get("DOCS_CHECKER_DEFAULT_LLM_MODEL", "agentrouter/gpt-5.6-sol")
+    _MODEL = os.environ.get("DOCS_CHECKER_DEFAULT_LLM_MODEL", "agentrouter/glm-5.3")
     _FENCE_RE = re.compile(r"```(?:json)?", re.IGNORECASE)
     _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
 
