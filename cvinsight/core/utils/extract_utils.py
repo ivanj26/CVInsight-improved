@@ -2,7 +2,7 @@ import json
 import re
 
 def extract_json(text: str):
-    match = re.search(r'```json\n([\s\S]*?)\n```', text, re.IGNORECASE)
+    match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', text, re.IGNORECASE)
     if match:
         json_str = match.group(1).strip()
     else:

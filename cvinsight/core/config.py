@@ -11,6 +11,12 @@ DEEPSEEK_API_URL = os.environ.get("DEEPSEEK_API_URL")
 # Base URL of the OpenAI-compatible provider used for extraction
 TOKENROUTER_API_URL = os.environ.get("TOKENROUTER_API_URL", "https://api.tokenrouter.com/v1")
 
+# Local OpenCode server used for extraction when enabled.
+OPENCODE_URL = os.environ.get("OPENCODE_URL", "http://localhost:4096").rstrip("/")
+OPENCODE_ENABLED = os.environ.get("OPENCODE_ENABLED", "true").lower() == "true"
+OPENCODE_PROVIDER_ID = os.environ.get("OPENCODE_PROVIDER_ID")
+OPENCODE_MODEL_ID = os.environ.get("OPENCODE_MODEL_ID")
+
 # API keys - get but don't raise error (handled by LLMService)
 TOKENROUTER_API_KEY = os.environ.get("TOKENROUTER_API_KEY")
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY")

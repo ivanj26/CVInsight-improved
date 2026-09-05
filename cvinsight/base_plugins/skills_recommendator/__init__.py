@@ -75,4 +75,8 @@ Example: {\"Research & Analysis\": [\"Data Analysis (Heatmaps)\", \"Usability Te
         if not result:
             return {}, token_usage
 
-        return extract_json(result.choices[0].message.content), token_usage
+        content = result.choices[0].message.content
+        if not content or not content.strip():
+            return {}, token_usage
+
+        return extract_json(content), token_usage

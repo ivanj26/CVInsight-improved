@@ -2,6 +2,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from cvinsight.core.llm_service import LLMService
+from cvinsight.core import config as llm_config
 from pydantic import BaseModel
 from typing import List
 
@@ -15,8 +16,11 @@ def mock_llm(monkeypatch):
     """Mock LLM."""
     monkeypatch.setenv("TOKENROUTER_API_KEY", "test-tokenrouter-key")
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-deepseek-key")
-    monkeypatch.setattr("cvinsight.core.llm_service.config.TOKENROUTER_API_KEY", "test-tokenrouter-key")
-    monkeypatch.setattr("cvinsight.core.llm_service.config.DEEPSEEK_API_KEY", "test-deepseek-key")
+    monkeypatch.setattr(llm_config, "TOKENROUTER_API_KEY", "test-tokenrouter-key", raising=False)
+    monkeypatch.setattr(llm_config, "DEEPSEEK_API_KEY", "test-deepseek-key", raising=False)
+    monkeypatch.setattr(llm_config, "OPENCODE_ENABLED", False, raising=False)
+    monkeypatch.setattr(llm_config, "OPENCODE_PROVIDER_ID", None, raising=False)
+    monkeypatch.setattr(llm_config, "OPENCODE_MODEL_ID", None, raising=False)
 
     with patch('cvinsight.core.llm_service.ChatOpenAI') as mock:
         mock_instance = MagicMock()
@@ -122,4 +126,70 @@ def test_extract_with_llm_empty_response(llm_service, mock_llm):
     assert isinstance(token_usage, dict)
     assert "total_tokens" in token_usage
     assert "prompt_tokens" in token_usage
-    assert "completion_tokens" in token_usage 
+    assert "completion_tokens" in token_usage
+
+
+def test_extract_with_opencode(llm_service, monkeypatch):
+    """Test session creation, prompt delivery, response parsing, and cleanup."""
+    session_response = MagicMock()
+    session_response.json.return_value = {"id": "ses_test"}
+    message_response = MagicMock()
+    message_response.json.return_value = {
+        "info": {"tokens": {"input": 10, "output": 4}},
+        "parts": [{"type": "text", "text": '{"name":"Jane Doe","skills":["Go"]}'}],
+    }
+    client = MagicMock()
+    client.__enter__.return_value = client
+    client.post.side_effect = [session_response, message_response]
+    monkeypatch.setattr("cvinsight.core.llm_service.httpx.Client", MagicMock(return_value=client))
+    monkeypatch.setattr(llm_config, "OPENCODE_PROVIDER_ID", "agentrouter")
+    monkeypatch.setattr(llm_config, "OPENCODE_MODEL_ID", "deepseek-v4-flash")
+
+    result, token_usage = llm_service._extract_with_opencode(
+        TestModel,
+        "Extract information from: {text}\n{format_instructions}",
+        ["text"],
+        {"text": "Jane Doe knows Go"},
+    )
+
+    assert result == {"name": "Jane Doe", "skills": ["Go"]}
+    assert token_usage["total_tokens"] == 14
+    assert client.post.call_args_list[1].args[0] == "http://localhost:4096/session/ses_test/message"
+    assert client.post.call_args_list[1].kwargs["json"]["model"] == {
+        "providerID": "agentrouter",
+        "modelID": "deepseek-v4-flash",
+    }
+    client.delete.assert_called_once_with("http://localhost:4096/session/ses_test")
+
+
+def test_generate_content_with_opencode(llm_service, monkeypatch):
+    """Test generation keeps the response shape expected by recommendation plugins."""
+    session_response = MagicMock()
+    session_response.json.return_value = {"id": "ses_generate"}
+    message_response = MagicMock()
+    message_response.json.return_value = {
+        "info": {"tokens": {"input": 12, "output": 8, "total": 20}},
+        "parts": [{"type": "text", "text": '{"recommendations":["Use Go"]}'}],
+    }
+    client = MagicMock()
+    client.__enter__.return_value = client
+    client.post.side_effect = [session_response, message_response]
+    monkeypatch.setattr("cvinsight.core.llm_service.httpx.Client", MagicMock(return_value=client))
+    monkeypatch.setattr(llm_config, "OPENCODE_PROVIDER_ID", "agentrouter")
+    monkeypatch.setattr(llm_config, "OPENCODE_MODEL_ID", "deepseek-v4-flash")
+    monkeypatch.setattr(llm_config, "OPENCODE_ENABLED", True)
+
+    result, token_usage = llm_service.generate_content(
+        [
+            type("Message", (), {"role": "system", "content": "Return JSON"})(),
+            type("Message", (), {"role": "user", "content": "Recommend Go"})(),
+        ]
+    )
+
+    assert result.choices[0].message.content == '{"recommendations":["Use Go"]}'
+    assert token_usage["total_tokens"] == 20
+    assert client.post.call_args_list[1].kwargs["json"]["model"] == {
+        "providerID": "agentrouter",
+        "modelID": "deepseek-v4-flash",
+    }
+    client.delete.assert_called_once_with("http://localhost:4096/session/ses_generate")

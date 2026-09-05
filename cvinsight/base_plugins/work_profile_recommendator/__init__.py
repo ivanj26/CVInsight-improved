@@ -82,4 +82,8 @@ and returns in JSON format with this structure: {\"recommendations\": [\"item1\"
         if not result:
             return {}, token_usage
 
-        return extract_json(result.choices[0].message.content.replace("\n", " ")), token_usage
+        content = result.choices[0].message.content
+        if not content or not content.strip():
+            return {}, token_usage
+
+        return extract_json(content), token_usage
