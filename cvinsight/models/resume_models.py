@@ -1,5 +1,5 @@
 from typing import List, Dict, Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import os
 
 class ResumeProfile(BaseModel):
@@ -43,12 +43,24 @@ class Experience(BaseModel):
     role: str
     location: Optional[str] = None
     description: List[str] = Field(
-        ...,
+        default_factory=list,
         description="A list of job description extracted from the each work experience history."
     )
     job_type: Optional[str] = None
     start_date: str
     end_date: str
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def normalize_description(cls, value: Any) -> List[str]:
+        """Accept common LLM variants while keeping the public model typed."""
+        if value is None or value == "":
+            return []
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, list):
+            return [str(item) for item in value if item is not None]
+        return [str(value)]
 
 class ResumeWorkExperience(BaseModel):
     """Model for work experience information"""
@@ -152,4 +164,4 @@ class Resume(BaseModel):
         Returns:
             A dictionary representation of the Resume
         """
-        return self.model_dump(exclude={'file_path', 'token_usage'}) 
+        return self.model_dump(exclude={'file_path', 'token_usage'})

@@ -116,8 +116,16 @@ Text:
                 exp["company"] = exp.get("company") or ""
                 exp["start_date"] = exp.get("start_date") or ""
                 exp["end_date"] = exp.get("end_date") or ""
-                exp["description"] = exp.get("description") or ""
+                description = exp.get("description")
+                if description is None:
+                    exp["description"] = []
+                elif isinstance(description, str):
+                    exp["description"] = [description] if description else []
+                elif not isinstance(description, list):
+                    exp["description"] = [str(description)]
+                else:
+                    exp["description"] = [str(item) for item in description if item is not None]
                 exp["location"] = exp.get("location")  # Can be None
                 exp["role"] = exp.get("role") or ""
         
-        return processed_result, token_usage 
+        return processed_result, token_usage
