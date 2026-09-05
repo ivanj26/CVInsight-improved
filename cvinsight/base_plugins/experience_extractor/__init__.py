@@ -101,12 +101,12 @@ Text:
         # Process the result to ensure it's a dict with the expected keys
         if isinstance(result, dict):
             processed_result = {
-                "work_experiences": result.get("work_experiences", [])
+                "work_experiences": result.get("work_experiences") or []
             }
         else:
             # If result is a Pydantic model, convert to dict
             processed_result = {
-                "work_experiences": getattr(result, "work_experiences", [])
+                "work_experiences": getattr(result, "work_experiences", None) or []
             }
         
         # Ensure each work experience entry has expected fields
