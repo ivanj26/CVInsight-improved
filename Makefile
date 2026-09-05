@@ -2,10 +2,10 @@ docker-build:
 	docker build --no-cache -t cvparser-service .
 
 docker-run:
-	docker run -d --name docker-cvparser -p 9001:9001 cvparser-service
+	docker run -d --name docker-cvparser -p 9001:9001 --add-host host.docker.internal:host-gateway cvparser-service
 
 docker-update:
-	docker stop docker-cvparser && docker rm docker-cvparser && docker run -d --name docker-cvparser -p 9001:9001 cvparser-service
+	docker stop docker-cvparser && docker rm docker-cvparser && docker run -d --name docker-cvparser -p 9001:9001 --add-host host.docker.internal:host-gateway cvparser-service
 
 docker-build-worker:
 	docker build --no-cache -f Dockerfile.worker -t docs-checker-worker .
