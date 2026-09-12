@@ -14,6 +14,7 @@ TOKENROUTER_API_URL = os.environ.get("TOKENROUTER_API_URL", "https://api.tokenro
 # Local OpenCode server used for extraction when enabled.
 OPENCODE_URL = os.environ.get("OPENCODE_URL", "http://localhost:4096").rstrip("/")
 OPENCODE_ENABLED = os.environ.get("OPENCODE_ENABLED", "true").lower() == "true"
+OPENCODE_ENABLED_FOR_CONTENT_GENERATE = os.environ.get("OPENCODE_ENABLED_FOR_CONTENT_GENERATE", "true").lower() == "true"
 OPENCODE_PROVIDER_ID = os.environ.get("OPENCODE_PROVIDER_ID")
 OPENCODE_MODEL_ID = os.environ.get("OPENCODE_MODEL_ID")
 

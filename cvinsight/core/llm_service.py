@@ -252,7 +252,7 @@ class LLMService:
         }
         
         try:
-            if config.OPENCODE_ENABLED:
+            if config.OPENCODE_ENABLED_FOR_CONTENT_GENERATE:
                 return self._generate_content_with_opencode(messages, max_token)
 
             # @Call tiktoken to estimating the rough token usage
