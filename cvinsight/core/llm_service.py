@@ -2,12 +2,13 @@
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from typing import Type, Any, Dict, Tuple, List
+from typing import LiteralString, Type, Any, Dict, Tuple, List
 from pydantic import BaseModel
 import httpx
 from types import SimpleNamespace
 
 from openai import OpenAI, APITimeoutError
+
 from ..models.content_generation_models import AIMessageResponse
 
 from . import config
@@ -253,7 +254,7 @@ class LLMService:
         
         try:
             if config.OPENCODE_ENABLED_FOR_CONTENT_GENERATE:
-                return self._generate_content_with_opencode(messages, max_token)
+                return self._generate_content_with_opencode(messages)
 
             # @Call tiktoken to estimating the rough token usage
             estimated_token: int = 0
@@ -303,8 +304,7 @@ class LLMService:
     def _generate_content_with_opencode(
         self,
         messages: List[AIMessageResponse],
-        max_token: int,
-    ) -> Tuple[Any, Dict[str, Any]]:
+    ) -> Tuple[SimpleNamespace, Dict[str, Any]]:
         """Generate content through a one-shot OpenCode session."""
         prompt = "\n\n".join(
             f"{message.role}: {message.content}" for message in messages
@@ -374,7 +374,7 @@ class LLMService:
                         client.delete(f"{config.OPENCODE_URL}/session/{session_id}")
                 except Exception:
                     logging.warning("Unable to delete OpenCode session %s", session_id, exc_info=True)
-        
+ 
     def generate_content_stream(
         self,
         messages: List[AIMessageResponse],
@@ -396,6 +396,24 @@ class LLMService:
             })
 
         try:
+            if config.OPENCODE_ENABLED_FOR_CONTENT_GENERATE:
+                result, token_usage = self._generate_content_with_opencode(messages)
+                if result and result.choices and isinstance(result.choices, list):
+                    content_text: LiteralString = result.choices[0].message.content
+                    content_bytes = content_text.encode('utf-8')
+
+                    if isinstance(token_usage, dict) and token_usage.get("total_tokens", 0) > 0:
+                        token_usage_out.update({
+                            "total_tokens": token_usage["total_tokens"],
+                            "prompt_tokens": token_usage["prompt_tokens"],
+                            "completion_tokens": token_usage["completion_tokens"],
+                            "is_estimated": False,
+                        })
+
+                    for i in range(0, len(content_bytes), 16): # chunk the bytes data per 16 bytes
+                        yield content_bytes[i:i+16].decode('utf-8', errors='ignore')
+                    return
+
             stream = self.deepseek_llm.chat.completions.create(
                 model=self.deepseek_model_name,
                 messages=[msg.model_dump() for msg in messages],
