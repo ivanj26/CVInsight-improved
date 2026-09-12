@@ -272,7 +272,8 @@ class LLMService:
                 messages=[msg.model_dump() for msg in messages],
                 stream=False,
                 max_tokens=max_token,
-                temperature=0.3
+                temperature=0.3,
+                reasoning_effort="none",
             )
 
             # Check the response from LLM
@@ -402,6 +403,7 @@ class LLMService:
                 stream_options={"include_usage": True},  # DeepSeek/OpenAI: sends usage in last chunk
                 max_tokens=max_token,
                 temperature=0.3,
+                reasoning_effort="none",
             )
 
             for chunk in stream:
