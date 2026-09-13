@@ -2,7 +2,7 @@
 Docs Checker Worker
 
 Subscribes to a Redis PubSub channel, downloads documents from public Google Drive
-links (.pdf / .docx only), extracts text, and submits each document to the TokenRouter
+links (.pdf / .docx only), extracts text, and submits each document to the OpenCode
 AI checker. The raw AI response is published back on a separate Redis channel.
 
 Message format consumed (JSON):
@@ -52,9 +52,9 @@ REDIS_INPUT_CHANNEL = os.environ.get("DOCS_CHECKER_INPUT_CHANNEL", "docs_checker
 REDIS_OUTPUT_CHANNEL = os.environ.get("DOCS_CHECKER_OUTPUT_CHANNEL", "docs_checker:results")
 MAX_CONCURRENT_JOBS = int(os.environ.get("MAX_CONCURRENT_JOBS", "3"))
 
-TOKENROUTER_API_KEY = os.environ.get("TOKENROUTER_API_KEY", "")
-_raw_base = os.environ.get("TOKENROUTER_API_URL", "").rstrip("/")
-TOKENROUTER_BASE_URL = _raw_base if _raw_base.endswith("/v1") else f"{_raw_base}/v1"
+OPENCODE_URL = os.environ.get("OPENCODE_URL", "http://localhost:4096").rstrip("/")
+OPENCODE_PROVIDER_ID = os.environ.get("OPENCODE_PROVIDER_ID")
+DOCS_CHECKER_DEFAULT_LLM_MODEL = os.environ.get("DOCS_CHECKER_DEFAULT_LLM_MODEL")
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -92,7 +92,11 @@ class DocsCheckerWorker:
 
         self._downloader = GDriveDownloader()
         self._extractor = TextExtractor()
-        self._ai_checker = AIChecker(api_key=TOKENROUTER_API_KEY, base_url=TOKENROUTER_BASE_URL)
+        self._ai_checker = AIChecker(
+            opencode_url=OPENCODE_URL,
+            provider_id=OPENCODE_PROVIDER_ID,
+            model_id=DOCS_CHECKER_DEFAULT_LLM_MODEL,
+        )
 
     # ------------------------------------------------------------------
     # Public entry point
@@ -103,7 +107,9 @@ class DocsCheckerWorker:
         logger.info("  Input channel  : %s", self._input_channel)
         logger.info("  Output channel : %s", self._output_channel)
         logger.info("  Max concurrency: %d", self._semaphore._value)
-        logger.info("  TokenRouter base  : %s", TOKENROUTER_BASE_URL)
+        logger.info("  OpenCode URL      : %s", OPENCODE_URL)
+        logger.info("  OpenCode provider : %s", OPENCODE_PROVIDER_ID)
+        logger.info("  OpenCode model    : %s", DOCS_CHECKER_DEFAULT_LLM_MODEL)
 
         redis_client = aioredis.from_url(self._redis_url, password=REDIS_PASSWORD, decode_responses=False)
         pubsub = redis_client.pubsub()
@@ -334,7 +340,7 @@ class DocsCheckerWorker:
                 "prompt_tokens": usage.get("prompt_tokens", 0),
                 "completion_tokens": usage.get("completion_tokens", 0),
                 "total_tokens": usage.get("total_tokens", 0),
-                "is_estimated": False,
+                "is_estimated": usage.get("is_estimated", False),
             }
         }
 
@@ -360,8 +366,11 @@ class DocsCheckerWorker:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    if not TOKENROUTER_API_KEY:
-        logger.error("TOKENROUTER_API_KEY is not set — aborting.")
+    if not OPENCODE_PROVIDER_ID or not DOCS_CHECKER_DEFAULT_LLM_MODEL:
+        logger.error(
+            "OPENCODE_PROVIDER_ID and (DOCS_CHECKER_DEFAULT_LLM_MODEL) "
+            "must be set — aborting."
+        )
         sys.exit(1)
     asyncio.run(DocsCheckerWorker().run())
 
