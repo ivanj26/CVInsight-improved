@@ -9,7 +9,7 @@ docker-update:
 	docker run -d \
 		--name docker-cvparser \
 		-p 9001:9001 \
-		-restart on-failure:5 \
+		--restart on-failure:5 \
 		--network host \
 		--env-file .env \
 		-v $(PWD)/logs:/app/logs \
