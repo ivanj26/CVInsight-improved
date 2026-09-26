@@ -25,6 +25,7 @@ Run:
 import asyncio
 import json
 import logging
+import math
 import os
 import shutil
 import signal
@@ -247,39 +248,88 @@ class DocsCheckerWorker:
         self, job_id: int, file_path: str, file_name: str
     ) -> dict:
         logger.info("[job=%s] Checking '%s'", job_id, file_name)
+        raw_ai_response: dict | None = None
         try:
             text = await asyncio.to_thread(self._extractor.extract, file_path)
             if not text.strip():
                 raise ValueError(f"No text could be extracted from '{file_name}'")
 
             ai_result = await self._ai_checker.check(text)
+            raw_ai_response = ai_result["raw"]
             parsed = ai_result["parsed"]
+
+            # AIChecker reports an unparseable reply as {"parse_error": ...}
+            # rather than raising, so a prose or truncated answer would otherwise
+            # pass as a successful file that has no score to aggregate.
+            score = self._coerce_score(parsed.get("likelihood_score"))
+            if score is None:
+                logger.error(
+                    "[job=%s] '%s' returned no likelihood_score — reply was: %.500s",
+                    job_id,
+                    file_name,
+                    raw_ai_response.get("content") or parsed,
+                )
+                raise ValueError(
+                    "AI response contained no usable likelihood_score "
+                    f"({parsed.get('parse_error', 'unexpected response shape')})"
+                )
+
+            is_ai_generated = parsed.get("is_ai_generated")
+            if not isinstance(is_ai_generated, bool):
+                is_ai_generated = score > 65
+
             logger.info(
                 "[job=%s] '%s' → likelihood=%s, is_ai_generated=%s",
                 job_id,
                 file_name,
-                parsed.get("likelihood_score"),
-                parsed.get("is_ai_generated"),
+                score,
+                is_ai_generated,
             )
             return {
                 "job_id": job_id,
                 "status": 1,
                 "file_name": file_name,
-                "result": parsed,
-                "raw_ai_response": ai_result["raw"],
+                "result": {
+                    "likelihood_score": score,
+                    "reasoning": parsed.get("reasoning", ""),
+                    "is_ai_generated": is_ai_generated,
+                },
+                "raw_ai_response": raw_ai_response,
             }
         except Exception as exc:
             logger.error("[job=%s] Failed to process '%s': %s", job_id, file_name, exc)
-            return {
+            failure = {
                 "job_id": job_id,
                 "status": 0,
                 "file_name": file_name,
                 "error": str(exc),
             }
+            if raw_ai_response is not None:
+                # Keep the usage figures so the caller can still log them.
+                failure["raw_ai_response"] = raw_ai_response
+            return failure
 
 
     @staticmethod
-    def _aggregate_results(job_id: int, results: list[dict]) -> dict:
+    def _coerce_score(value: object) -> int | None:
+        """
+        Return ``value`` as an int score, or None when it is not a finite number.
+
+        The model sometimes answers with a string ("85") or omits the field
+        entirely, so callers must never assume the raw value is an int.
+        """
+        if isinstance(value, bool) or value is None:
+            return None
+        try:
+            number = float(value)  # accepts int, float and numeric strings
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(number):
+            return None
+        return round(number)
+
+    @classmethod
+    def _aggregate_results(cls, job_id: int, results: list[dict]) -> dict:
         """
         Merge per-file results into a single message.
 
@@ -290,7 +340,16 @@ class DocsCheckerWorker:
         - status           : 1 if at least one file succeeded, 0 if all failed
         """
         file_names = [r["file_name"] for r in results]
-        successful = [r for r in results if r.get("status") == 1]
+
+        # Only files carrying a usable score can be averaged — a file that came
+        # back without one must not take the whole job down with it.
+        successful: list[tuple[dict, int]] = []
+        for r in results:
+            if r.get("status") != 1 or not isinstance(r.get("result"), dict):
+                continue
+            score = cls._coerce_score(r["result"].get("likelihood_score"))
+            if score is not None:
+                successful.append((r, score))
 
         if not successful:
             # Every file failed — surface the first error so the caller knows why
@@ -298,22 +357,22 @@ class DocsCheckerWorker:
             return {
                 "job_id": job_id,
                 "status": 0,
-                "file_name": file_names,
+                "file_names": file_names,
                 "error": first_error.get("error", "All files failed to process"),
             }
 
-        scores = [r["result"]["likelihood_score"] for r in successful]
+        scores = [score for _, score in successful]
         avg_score = round(sum(scores) / len(scores))
 
         reasoning = "\n\n".join(
             f"[{r['file_name']}] {r['result'].get('reasoning', '')}"
-            for r in successful
+            for r, _ in successful
         )
 
         logger.info(
             "[job=%s] Scores per file: %s → average: %d",
             job_id,
-            {r["file_name"]: r["result"]["likelihood_score"] for r in successful},
+            {r["file_name"]: score for r, score in successful},
             avg_score,
         )
 
