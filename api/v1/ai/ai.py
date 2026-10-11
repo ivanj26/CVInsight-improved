@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from datetime import datetime, date
 
@@ -11,6 +12,8 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from cvinsight import CVInsightClient
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+logger = logging.getLogger(__name__)
 
 # Initialize client with API key
 client = CVInsightClient()
@@ -50,13 +53,19 @@ async def parse_resume(file: UploadFile = File(...)):
                 data["my_company"] = latest_work_exp.get("company")
                 data["description"] = "\nMy experience: " + ", ".join(latest_work_exp.get("description"))
 
-        # Generate personal summary from given CV/Resume
-        summary_result = await run_in_threadpool(
-            client.generate_work_profile_recom,
-            data,
-            log_token_usage=True,
-            one_recommendation_only=True
-        )
+        # Generate personal summary from given CV/Resume.
+        # Best-effort only: if summary generation fails, return the
+        # extraction data anyway instead of failing the whole request.
+        summary_result = []
+        try:
+            summary_result = await run_in_threadpool(
+                client.generate_work_profile_recom,
+                data,
+                log_token_usage=True,
+                one_recommendation_only=True
+            )
+        except Exception as exc:
+            logger.warning("Skipping personalized summary: %s", exc)
 
         resp = {"data": result}
         if len(summary_result) > 0:
