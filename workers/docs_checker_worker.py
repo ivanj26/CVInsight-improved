@@ -128,8 +128,8 @@ class DocsCheckerWorker:
         try:
             while not stop_event.is_set():
                 try:
-                    message = await asyncio.wait_for(
-                        pubsub.get_message(ignore_subscribe_messages=True),
+                    message = await pubsub.get_message(
+                        ignore_subscribe_messages=True,
                         timeout=1.0,
                     )
                 except asyncio.TimeoutError:
